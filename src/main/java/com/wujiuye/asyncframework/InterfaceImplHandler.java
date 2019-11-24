@@ -1,12 +1,11 @@
 package com.wujiuye.asyncframework;
 
-import jdk.internal.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.Method;
 
-import static jdk.internal.org.objectweb.asm.Opcodes.V1_8;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -86,7 +85,7 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
          * param3: 继承的父类
          * param4: 实现的接口
          */
-        this.classWriter.visit(V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
+        this.classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
         // 添加字段proxy，访问标志为protected，因为第二层代理要用到
         this.classWriter.visitField(ACC_PROTECTED, "proxy", Type.getDescriptor(interfaceClass), null, null);
         //添加构造方法

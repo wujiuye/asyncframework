@@ -1,13 +1,13 @@
 package com.wujiuye.asyncframework;
 
-import jdk.internal.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.lang.reflect.Method;
 
-import static jdk.internal.org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * 实现Runnable
@@ -80,7 +80,7 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
 
     @Override
     public byte[] getByteCode() {
-        classWriter.visit(V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
+        classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
         classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
         Class[] params = method.getParameterTypes();
         Class[] initParams = new Class[params.length + 1];

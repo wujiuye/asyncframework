@@ -1,6 +1,6 @@
 package com.wujiuye.asyncframework;
 
-import jdk.internal.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 
 import java.io.File;
 import java.io.FileOutputStream;

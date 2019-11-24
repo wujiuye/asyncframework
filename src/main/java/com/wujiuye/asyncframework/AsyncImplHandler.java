@@ -1,13 +1,13 @@
 package com.wujiuye.asyncframework;
 
-import jdk.internal.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-import static jdk.internal.org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * 对代理类再做一层AOP，对异步的支持
@@ -136,7 +136,7 @@ public class AsyncImplHandler implements ByteCodeHandler {
 
     @Override
     public byte[] getByteCode() {
-        this.classWriter.visit(V1_8, ACC_PUBLIC, getClassName(), null, Type.getDescriptor(tClass), null);
+        this.classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, Type.getDescriptor(tClass), null);
         // 添加字段executorService
         this.classWriter.visitField(ACC_PRIVATE, "executorService", Type.getDescriptor(executorServiceClass), null, null);
         this.extendsConstructor();

@@ -1,13 +1,14 @@
-plugins {
-    id 'java'
-}
-
 group 'com.wujiuye.asyncframework'
 version '1.0-SNAPSHOT'
 
+apply plugin: 'java'
+apply plugin: 'idea'
+
 sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
