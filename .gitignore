@@ -17,4 +17,6 @@ gradlew
 gradlew.bat
 
 .idea
-.out
+out
+gradle
+
