@@ -1,6 +1,20 @@
 # asyncframework
 asm+动态字节码实现的一个异步框架，在你的接口上添加一个@AsyncFunction注解即可让这个方法异步执行，不依赖任何第三方框架！项目长期维护。
 
+###  添加依赖 (gradle版)
+```groovy
+allprojects {
+		repositories {
+			...
+			maven { url 'https://jitpack.io' }
+		}
+}
+
+dependencies {
+    compile group: 'com.github.wujiuye', name: 'asyncframework', version: '1.0.1'
+}
+```
+
 ### 使用介绍
 
 第一步：在接口的需要异步执行的方法上加上@AsyncFunction注解
