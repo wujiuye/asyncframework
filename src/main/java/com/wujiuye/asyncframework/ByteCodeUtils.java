@@ -1,5 +1,6 @@
 package com.wujiuye.asyncframework;
 
+import com.wujiuye.asyncframework.handler.ByteCodeHandler;
 import org.objectweb.asm.Type;
 
 import java.io.File;
@@ -34,11 +35,12 @@ public class ByteCodeUtils {
     }
 
     /**
-     * 将字节码转为class文件输出到类路径下
+     * 将字节码转为class文件输出到类路径下，测试用
      *
      * @param byteCodeHandler 字节码处理器
      * @throws IOException
      */
+    @Deprecated
     public static void savaToClasspath(ByteCodeHandler byteCodeHandler) throws IOException {
         String rootpath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
         String className = byteCodeHandler.getClassName();

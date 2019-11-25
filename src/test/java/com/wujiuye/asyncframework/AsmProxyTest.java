@@ -14,7 +14,7 @@ public class AsmProxyTest {
 
     @Test
     public void testAutoProxyAsync() throws Exception {
-        AsyncMessageSubscribe impl = (String queue) -> System.out.println(queue);
+        AsyncMessageSubscribe impl = (String queue) -> System.out.println(queue + "， current thread name:" + Thread.currentThread().getName());
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         AsyncMessageSubscribe proxy = AsmProxyFactory.getInterfaceImplSupporAsync(AsyncMessageSubscribe.class, impl, executorService);
         proxy.pullMessage("wujiuye");

@@ -1,9 +1,14 @@
 package com.wujiuye.asyncframework;
 
+import com.wujiuye.asyncframework.handler.AsyncImplHandler;
+import com.wujiuye.asyncframework.handler.AsyncRunnableHandler;
+import com.wujiuye.asyncframework.handler.InterfaceImplHandler;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -22,6 +27,18 @@ public final class AsmProxyFactory {
     private static Map<Class, Class> asyncProxyMap = new ConcurrentHashMap<>();
     private static Map<String, Class<Runnable>> runnableMap = new ConcurrentHashMap<>();
 
+    private static final ByteCodeClassLoader classLoader;
+
+    static {
+        final ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        classLoader = AccessController.doPrivileged(new PrivilegedAction<ByteCodeClassLoader>() {
+            @Override
+            public ByteCodeClassLoader run() {
+                return new ByteCodeClassLoader(loader);
+            }
+        });
+    }
+
     /**
      * 实现的功能很简单，就是通过实现接口，为每个方法调用动态代理类
      *
@@ -29,14 +46,13 @@ public final class AsmProxyFactory {
      * @param <T>    不限制任何接口
      * @return 返回接口的一个实现类
      */
-    public static <T> Class getInterfaceImplV2(Class<T> tClass) throws Exception {
+    public static <T> Class getInterfaceImpl(Class<T> tClass) throws Exception {
         if (proxyMap.containsKey(tClass)) {
             return proxyMap.get(tClass);
         }
         InterfaceImplHandler<T> interfaceImplHandler = new InterfaceImplHandler<>(tClass);
-        ByteCodeUtils.savaToClasspath(interfaceImplHandler);
-        // 加载Class
-        Class cla = Thread.currentThread().getContextClassLoader().loadClass(interfaceImplHandler.getClassName().replace("/", "."));
+        classLoader.add(interfaceImplHandler.getClassName(), interfaceImplHandler);
+        Class cla = classLoader.loadClass(interfaceImplHandler.getClassName());
         proxyMap.put(tClass, cla);
         return cla;
     }
@@ -52,13 +68,12 @@ public final class AsmProxyFactory {
      * @throws Exception
      */
     public static <T> T getInterfaceImplSupporAsync(Class<T> tClass, T proxy, ExecutorService executorService) throws Exception {
-        Class proxyClass = getInterfaceImplV2(tClass);
+        Class proxyClass = getInterfaceImpl(tClass);
         synchronized (AsmProxyFactory.class) {
             if (!asyncProxyMap.containsKey(proxyClass)) {
                 AsyncImplHandler asyncImplHandler = new AsyncImplHandler(executorService.getClass(), proxyClass);
-                ByteCodeUtils.savaToClasspath(asyncImplHandler);
-                // 加载Class
-                Class cla = Thread.currentThread().getContextClassLoader().loadClass(asyncImplHandler.getClassName().replace("/", "."));
+                classLoader.add(asyncImplHandler.getClassName(), asyncImplHandler);
+                Class cla = classLoader.loadClass(asyncImplHandler.getClassName());
                 asyncProxyMap.put(proxyClass, cla);
             }
         }
@@ -67,7 +82,6 @@ public final class AsmProxyFactory {
         // 根据构造器创建实例，并传入代理类和线程池
         return (T) constructor.newInstance(proxy, executorService);
     }
-
 
     /**
      * 获取Runnable
@@ -83,9 +97,8 @@ public final class AsmProxyFactory {
             return runnableMap.get(key);
         }
         AsyncRunnableHandler asyncRunnableHandler = new AsyncRunnableHandler(targetClass, method);
-        ByteCodeUtils.savaToClasspath(asyncRunnableHandler);
-        // 加载Class
-        Class cla = Thread.currentThread().getContextClassLoader().loadClass(asyncRunnableHandler.getClassName().replace("/", "."));
+        classLoader.add(asyncRunnableHandler.getClassName(), asyncRunnableHandler);
+        Class cla = classLoader.loadClass(asyncRunnableHandler.getClassName());
         runnableMap.put(key, cla);
         return cla;
     }

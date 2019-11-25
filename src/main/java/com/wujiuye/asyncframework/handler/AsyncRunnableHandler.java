@@ -1,5 +1,7 @@
-package com.wujiuye.asyncframework;
+package com.wujiuye.asyncframework.handler;
 
+import com.wujiuye.asyncframework.ByteCodeUtils;
+import com.wujiuye.asyncframework.ExOpcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -80,6 +82,7 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
 
     @Override
     public byte[] getByteCode() {
+        // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
         classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
         classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
         Class[] params = method.getParameterTypes();
