@@ -1,6 +1,7 @@
 package com.wujiuye.asyncframework;
 
 import com.wujiuye.asyncframework.interfaces.AsyncMessageSubscribe;
+import com.wujiuye.asyncframework.interfaces.AsyncMessageSubscribeFuture;
 import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,20 @@ public class AsmProxyTest {
         ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         AsyncMessageSubscribe proxy = AsmProxyFactory.getInterfaceImplSupporAsync(AsyncMessageSubscribe.class, impl, executorService);
         proxy.pullMessage("wujiuye");
+        System.in.read();
+    }
+
+    @Test
+    public void testAutoProxyAsyncFuture() throws Exception {
+        AsyncMessageSubscribeFuture impl = (String queue) -> queue + "， current thread name:" + Thread.currentThread().getName();
+        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+//        Future<String> future = proxy.asyncPull("wujiuye");
+//        Future<String> future = executorService.submit(new Callable<String>() {
+//            @Override
+//            public String call() throws Exception {
+//                return impl.asyncPull("");
+//            }
+//        });
         System.in.read();
     }
 
