@@ -2,9 +2,9 @@ package com.wujiuye.asyncframework.handler;
 
 import com.wujiuye.asyncframework.AsyncFunction;
 import com.wujiuye.asyncframework.ByteCodeUtils;
-import com.wujiuye.asyncframework.ExOpcodes;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
@@ -99,7 +99,7 @@ abstract class BaseAsyncImplHandler implements ByteCodeHandler {
     @Override
     public byte[] getByteCode() {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        this.classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, tClass.getName().replace(".", "/"), null);
+        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, tClass.getName().replace(".", "/"), null);
         // 添加字段executorService
         this.classWriter.visitField(ACC_PRIVATE, "executorService", Type.getDescriptor(executorServiceClass), null, null);
         extendsConstructor();

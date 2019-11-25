@@ -1,7 +1,6 @@
 package com.wujiuye.asyncframework.handler;
 
 import com.wujiuye.asyncframework.ByteCodeUtils;
-import com.wujiuye.asyncframework.ExOpcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -34,6 +33,11 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
         return targetClass.getName().replace(".", "/") + method.getName() + "Runnable";
     }
 
+    /**
+     * 添加构造器
+     *
+     * @param initParams
+     */
     private void writeInitFunc(Class[] initParams) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, initParams), null, null);
         methodVisitor.visitCode();
@@ -58,6 +62,11 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
         methodVisitor.visitEnd();
     }
 
+    /**
+     * 实现run方法
+     *
+     * @param initParams
+     */
     private void writeRunFunc(Class[] initParams) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "run", "()V", null, null);
         methodVisitor.visitCode();
@@ -83,7 +92,7 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
     @Override
     public byte[] getByteCode() {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        classWriter.visit(ExOpcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
+        classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
         classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
         Class[] params = method.getParameterTypes();
         Class[] initParams = new Class[params.length + 1];
