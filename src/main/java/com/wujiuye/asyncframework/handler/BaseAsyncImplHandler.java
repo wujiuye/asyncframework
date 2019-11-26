@@ -60,7 +60,8 @@ abstract class BaseAsyncImplHandler implements ByteCodeHandler {
             for (int i = 0; i < paramTypes.length; i++) {
                 methodVisitor.visitVarInsn(ALOAD, i + 1);
             }
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, tClass.getName().replace(".", "/"), "<init>", ByteCodeUtils.getFuncDesc(null, paramTypes));
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, tClass.getName().replace(".", "/"),
+                    "<init>", ByteCodeUtils.getFuncDesc(null, paramTypes),false);
 
             // 为executorService赋值
             methodVisitor.visitVarInsn(ALOAD, 0);

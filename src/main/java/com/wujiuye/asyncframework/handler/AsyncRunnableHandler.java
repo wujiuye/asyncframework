@@ -43,7 +43,7 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
         methodVisitor.visitCode();
         // super()
         methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V",false);
 
         // this.target = var1;
         methodVisitor.visitVarInsn(ALOAD, 0);
@@ -79,9 +79,9 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
             methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "param" + i, Type.getDescriptor(initParams[i]));
         }
         if (targetClass.isInterface()) {
-            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method));
+            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method),true);
         } else {
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method));
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method),false);
         }
 
         methodVisitor.visitInsn(RETURN);

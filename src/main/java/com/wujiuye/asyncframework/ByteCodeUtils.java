@@ -40,7 +40,6 @@ public class ByteCodeUtils {
      * @param byteCodeHandler 字节码处理器
      * @throws IOException
      */
-    @Deprecated
     public static void savaToClasspath(ByteCodeHandler byteCodeHandler) throws IOException {
         String rootpath = Thread.currentThread().getContextClassLoader().getResource("").getPath();
         String className = byteCodeHandler.getClassName();

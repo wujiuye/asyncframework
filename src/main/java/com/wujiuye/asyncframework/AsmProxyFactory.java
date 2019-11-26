@@ -28,6 +28,7 @@ public final class AsmProxyFactory {
     private static Map<String, Class<Runnable>> runnableMap = new ConcurrentHashMap<>();
 
     private static final ByteCodeClassLoader classLoader;
+    private static final boolean DEBUG;
 
     static {
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -37,6 +38,7 @@ public final class AsmProxyFactory {
                 return new ByteCodeClassLoader(loader);
             }
         });
+        DEBUG = Boolean.getBoolean("debug");
     }
 
     /**
@@ -52,6 +54,9 @@ public final class AsmProxyFactory {
         }
         InterfaceImplHandler<T> interfaceImplHandler = new InterfaceImplHandler<>(tClass);
         classLoader.add(interfaceImplHandler.getClassName(), interfaceImplHandler);
+        if (DEBUG) {
+            ByteCodeUtils.savaToClasspath(interfaceImplHandler);
+        }
         Class cla = classLoader.loadClass(interfaceImplHandler.getClassName());
         proxyMap.put(tClass, cla);
         return cla;
@@ -73,6 +78,9 @@ public final class AsmProxyFactory {
             if (!asyncProxyMap.containsKey(proxyClass)) {
                 AsyncImplHandler asyncImplHandler = new AsyncImplHandler(executorService.getClass(), proxyClass);
                 classLoader.add(asyncImplHandler.getClassName(), asyncImplHandler);
+                if (DEBUG) {
+                    ByteCodeUtils.savaToClasspath(asyncImplHandler);
+                }
                 Class cla = classLoader.loadClass(asyncImplHandler.getClassName());
                 asyncProxyMap.put(proxyClass, cla);
             }
@@ -98,6 +106,9 @@ public final class AsmProxyFactory {
         }
         AsyncRunnableHandler asyncRunnableHandler = new AsyncRunnableHandler(targetClass, method);
         classLoader.add(asyncRunnableHandler.getClassName(), asyncRunnableHandler);
+        if (DEBUG) {
+            ByteCodeUtils.savaToClasspath(asyncRunnableHandler);
+        }
         Class cla = classLoader.loadClass(asyncRunnableHandler.getClassName());
         runnableMap.put(key, cla);
         return cla;

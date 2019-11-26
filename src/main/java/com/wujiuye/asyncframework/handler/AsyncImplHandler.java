@@ -60,14 +60,16 @@ public class AsyncImplHandler extends BaseAsyncImplHandler {
                 newParamTypes[index] = paramTypes[index - 1];
                 methodVisitor.visitVarInsn(ALOAD, index);
             }
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, runableCla.getName().replace(".", "/"), "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes));
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, runableCla.getName().replace(".", "/"),
+                    "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes), false);
             methodVisitor.visitVarInsn(ASTORE, index);
 
             // invoke submit runnable
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "executorService", Type.getDescriptor(executorServiceClass));
             methodVisitor.visitVarInsn(ALOAD, index);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"), "execute", "(Ljava/lang/Runnable;)V");
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"),
+                    "execute", "(Ljava/lang/Runnable;)V", executorServiceClass.isInterface());
 
             methodVisitor.visitInsn(RETURN);
             methodVisitor.visitMaxs(index + 2, index);

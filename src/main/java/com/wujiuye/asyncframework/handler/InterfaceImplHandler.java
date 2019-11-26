@@ -47,7 +47,7 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
         mv.visitCode();
         // 解决java.lang.VerifyError: Constructor must call super() or this() before return
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V",false);
         // this.proxy = 参数1;'
         mv.visitVarInsn(ALOAD, 0);
         mv.visitVarInsn(ALOAD, 1);
@@ -70,7 +70,8 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
             for (int paramIndex = 1; paramIndex <= method.getParameterCount(); paramIndex++) {
                 mv.visitVarInsn(ALOAD, paramIndex);
             }
-            mv.visitMethodInsn(INVOKEINTERFACE, interfaceClass.getName().replace(".", "/"), method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()));
+            mv.visitMethodInsn(INVOKEINTERFACE, interfaceClass.getName().replace(".", "/"),
+                    method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()),true);
             mv.visitInsn(RETURN);
             mv.visitMaxs(method.getParameterCount() + 2, method.getParameterCount() + 2);
             mv.visitEnd();
