@@ -14,13 +14,23 @@ import java.io.IOException;
 public class ByteCodeUtils {
 
     /**
+     * 统一生产代理类名的方法
+     *
+     * @param proxyClassName 其实是代理类实现的接口
+     * @return
+     */
+    public static String getProxyClassName(Class<?> proxyClassName) {
+        return proxyClassName.getName().replace(".", "/") + "SupporAsync";
+    }
+
+    /**
      * 获取方法签名
      *
      * @param returnType 方法返回值类型 null为方法无返回值
      * @param paramType  方法参数类型
      * @return
      */
-    public static String getFuncDesc(Class returnType, Class... paramType) {
+    public static String getFuncDesc(Class<?> returnType, Class<?>... paramType) {
         String rTypeStr = returnType == null ? "V" : Type.getDescriptor(returnType);
         if (paramType.length == 0) {
             return "()" + rTypeStr;

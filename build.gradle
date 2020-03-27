@@ -1,4 +1,4 @@
-group 'com.wujiuye.asyncframework'
+group 'com.wujiuye'
 version '1.0.3'
 
 apply plugin: 'java'

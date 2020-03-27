@@ -18,11 +18,11 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class AsyncRunnableHandler implements ByteCodeHandler {
 
-    private Class targetClass;
+    private Class<?> targetClass;
     private Method method;
     private ClassWriter classWriter;
 
-    public AsyncRunnableHandler(Class targetClass, Method method) {
+    public AsyncRunnableHandler(Class<?> targetClass, Method method) {
         this.targetClass = targetClass;
         this.method = method;
         this.classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
@@ -38,12 +38,12 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
      *
      * @param initParams
      */
-    private void writeInitFunc(Class[] initParams) {
+    private void writeInitFunc(Class<?>[] initParams) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, initParams), null, null);
         methodVisitor.visitCode();
         // super()
         methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V",false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 
         // this.target = var1;
         methodVisitor.visitVarInsn(ALOAD, 0);
@@ -67,7 +67,7 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
      *
      * @param initParams
      */
-    private void writeRunFunc(Class[] initParams) {
+    private void writeRunFunc(Class<?>[] initParams) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "run", "()V", null, null);
         methodVisitor.visitCode();
 
@@ -79,9 +79,9 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
             methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "param" + i, Type.getDescriptor(initParams[i]));
         }
         if (targetClass.isInterface()) {
-            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method),true);
+            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method), true);
         } else {
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method),false);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method), false);
         }
 
         methodVisitor.visitInsn(RETURN);
@@ -94,11 +94,11 @@ public class AsyncRunnableHandler implements ByteCodeHandler {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
         classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
         classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
-        Class[] params = method.getParameterTypes();
-        Class[] initParams = new Class[params.length + 1];
+        Class<?>[] params = method.getParameterTypes();
+        Class<?>[] initParams = new Class[params.length + 1];
         initParams[0] = targetClass;
         int index = 1;
-        for (Class param : params) {
+        for (Class<?> param : params) {
             initParams[index] = param;
             classWriter.visitField(ACC_PRIVATE, "param" + index++, Type.getDescriptor(param), null, null);
         }

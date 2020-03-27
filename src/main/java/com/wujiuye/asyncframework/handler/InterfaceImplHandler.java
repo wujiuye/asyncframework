@@ -84,7 +84,7 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
         this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
         // 添加字段proxy，访问标志为protected，因为第二层代理要用到
         this.classWriter.visitField(ACC_PROTECTED, "proxy", Type.getDescriptor(interfaceClass), null, null);
-        //添加构造方法
+        // 添加构造方法
         this.writeInitFunc();
         // 实现接口的所有方法
         this.writeFuncImpl();
