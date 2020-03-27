@@ -6,6 +6,8 @@ import org.objectweb.asm.Type;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * @author wujiuye
@@ -24,7 +26,7 @@ public class ByteCodeUtils {
     }
 
     /**
-     * 获取方法签名
+     * 获取方法描述
      *
      * @param returnType 方法返回值类型 null为方法无返回值
      * @param paramType  方法参数类型
@@ -42,6 +44,22 @@ public class ByteCodeUtils {
         }
         funcDesc.append(")").append(rTypeStr);
         return funcDesc.toString();
+    }
+
+    /**
+     * 获取方法签名
+     *
+     * @param method
+     * @return
+     */
+    public static String getFunSignature(Method method) {
+        try {
+            Field field = method.getClass().getDeclaredField("signature");
+            field.setAccessible(true);
+            return field.get(method).toString();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

@@ -12,8 +12,14 @@ import java.util.concurrent.*;
  */
 public class AsmProxyTest {
 
+    /**
+     * 用于异步执行方法
+     */
     private static final ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
+    /**
+     * 接口的实现
+     */
     private AsyncMessageSubscribe impl = new AsyncMessageSubscribe() {
         @Override
         public void pullMessage(String queue) {
@@ -40,46 +46,31 @@ public class AsmProxyTest {
         System.in.read();
     }
 
-    public static class AsyncFutureProxy implements AsyncMessageSubscribe {
+    /// ================  异步带返回值的实现原理 =======================
 
-        private AsyncMessageSubscribe proxy;
+    public static class AsyncMessageSubscribe_doActionCallable implements Callable<AsyncResult<String>> {
+        private AsyncMessageSubscribe target;
+        private String param1;
+        private String param2;
 
-        public AsyncFutureProxy(AsyncMessageSubscribe proxy) {
-            this.proxy = proxy;
+        public AsyncMessageSubscribe_doActionCallable(AsyncMessageSubscribe var1, String var2, String var3) {
+            this.target = var1;
+            this.param1 = var2;
+            this.param2 = var3;
         }
 
-        @Override
-        public void pullMessage(String queue) {
-
-        }
-
-        @Override
-        public AsyncResult<String> doAction(String s1, String s2) {
-            Future<AsyncResult<String>> future = executorService.submit(new Callable<AsyncResult<String>>() {
-                @Override
-                public AsyncResult<String> call() throws Exception {
-                    return proxy.doAction(s1, s2);
-                }
-            });
-            // 再来一层代理，对外部屏蔽了线程阻塞等待
-            return new AsyncResult<String>(null) {
-                @Override
-                public String get() throws InterruptedException, ExecutionException {
-                    return future.get().get();
-                }
-            };
+        public AsyncResult<String> call() throws Exception {
+            return this.target.doAction(this.param1, this.param2);
         }
     }
 
     @Test
-    public void test2() {
-        try {
-            System.out.println(new AsyncFutureProxy(impl).doAction("jiuye", "wu").get());
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+    public void test2() throws ExecutionException, InterruptedException {
+        AsyncMessageSubscribe_doActionCallable callable = new AsyncMessageSubscribe_doActionCallable(impl, "sada", "sdasad");
+        Future result = executorService.submit(callable);
+        AsyncResult<String> asyncResult = AsyncResult.newAsyncResultProxy(result);
+        System.out.println(asyncResult.get());
     }
+
 
 }

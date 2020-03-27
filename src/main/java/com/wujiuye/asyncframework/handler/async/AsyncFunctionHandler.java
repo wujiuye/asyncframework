@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 /**
  * 实现异步方法的Handler
  *
- * @author wujiuye 2019/11/24
+ * @author wujiuye 2020/03/27
  */
 public interface AsyncFunctionHandler {
 

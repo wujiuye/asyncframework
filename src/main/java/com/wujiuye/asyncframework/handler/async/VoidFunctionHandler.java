@@ -16,7 +16,7 @@ import static org.objectweb.asm.Opcodes.*;
  *
  * @author wujiuye 2019/11/24
  */
-public class VoidAsyncFunctionHandler implements AsyncFunctionHandler {
+public class VoidFunctionHandler implements AsyncFunctionHandler {
 
     @Override
     public boolean suppor(Class<?> interfaceClass, Method asyncMethod) {
@@ -65,9 +65,13 @@ public class VoidAsyncFunctionHandler implements AsyncFunctionHandler {
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitFieldInsn(GETFIELD, ByteCodeUtils.getProxyClassName(proxyObjClass), "executorService", Type.getDescriptor(executorServiceClass));
             methodVisitor.visitVarInsn(ALOAD, index);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"),
-                    "execute", "(Ljava/lang/Runnable;)V", executorServiceClass.isInterface());
-
+            if (!executorServiceClass.isInterface()) {
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"),
+                        "execute", "(Ljava/lang/Runnable;)V", false);
+            } else {
+                methodVisitor.visitMethodInsn(INVOKEINTERFACE, executorServiceClass.getName().replace(".", "/"),
+                        "execute", "(Ljava/lang/Runnable;)V", true);
+            }
             methodVisitor.visitInsn(RETURN);
             methodVisitor.visitMaxs(index + 2, index);
             methodVisitor.visitEnd();

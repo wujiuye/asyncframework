@@ -3,8 +3,8 @@ package com.wujiuye.asyncframework.handler;
 import com.wujiuye.asyncframework.AsyncFunction;
 import com.wujiuye.asyncframework.ByteCodeUtils;
 import com.wujiuye.asyncframework.handler.async.AsyncFunctionHandler;
-import com.wujiuye.asyncframework.handler.async.FutureAsyncFunctionHandler;
-import com.wujiuye.asyncframework.handler.async.VoidAsyncFunctionHandler;
+import com.wujiuye.asyncframework.handler.async.FutureFunctionHandler;
+import com.wujiuye.asyncframework.handler.async.VoidFunctionHandler;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -30,8 +30,8 @@ public class AsyncImplHandler implements ByteCodeHandler {
     private ClassWriter classWriter;
 
     private AsyncFunctionHandler[] asyncFunctionHandlers = new AsyncFunctionHandler[]{
-            new VoidAsyncFunctionHandler(),
-            new FutureAsyncFunctionHandler()
+            new VoidFunctionHandler(),
+            new FutureFunctionHandler()
     };
 
     public AsyncImplHandler(Class<? extends ExecutorService> executorServiceClass, Class<?> tClass) {
@@ -60,10 +60,10 @@ public class AsyncImplHandler implements ByteCodeHandler {
         for (Constructor<?> constructor : constructors) {
             Class<?>[] paramTypes = constructor.getParameterTypes();
             Class<?>[] newParamTypes = new Class[paramTypes.length + 1];
-            for (int i = 0; i < paramTypes.length; i++) {
-                newParamTypes[i] = paramTypes[i];
-            }
+            System.arraycopy(paramTypes, 0, newParamTypes, 0, paramTypes.length);
             newParamTypes[newParamTypes.length - 1] = executorServiceClass;
+
+            // 生成<init>方法
             MethodVisitor methodVisitor = this.classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes), null, null);
             methodVisitor.visitCode();
 
@@ -101,7 +101,6 @@ public class AsyncImplHandler implements ByteCodeHandler {
         }
     }
 
-
     /**
      * 覆写方法支持异步
      *
@@ -117,11 +116,16 @@ public class AsyncImplHandler implements ByteCodeHandler {
         throw new UnsupportedOperationException("temporary not suppor! interfaceClass:" + interfaceClass.getName() + ", function:" + asyncMethod.getName());
     }
 
+    private String getClassSignature() {
+        String returnTypeSignature = tClass.getName().replace(".", "/");
+        return "L" + returnTypeSignature + ";";
+    }
 
     @Override
     public byte[] getByteCode() {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, tClass.getName().replace(".", "/"), null);
+        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), getClassSignature(),
+                tClass.getName().replace(".", "/"), null);
         // 添加字段executorService
         this.classWriter.visitField(ACC_PRIVATE, "executorService", Type.getDescriptor(executorServiceClass), null, null);
         extendsConstructor();

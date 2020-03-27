@@ -47,7 +47,7 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
         mv.visitCode();
         // 解决java.lang.VerifyError: Constructor must call super() or this() before return
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V",false);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
         // this.proxy = 参数1;'
         mv.visitVarInsn(ALOAD, 0);
         mv.visitVarInsn(ALOAD, 1);
@@ -63,7 +63,9 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
     private void writeFuncImpl() {
         Method[] methods = interfaceClass.getDeclaredMethods();
         for (Method method : methods) {
-            MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()), null, null);
+            MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, method.getName(),
+                    ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()),
+                    ByteCodeUtils.getFunSignature(method), null);
             mv.visitCode();
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, getClassName(), "proxy", Type.getDescriptor(interfaceClass));
@@ -71,8 +73,21 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
                 mv.visitVarInsn(ALOAD, paramIndex);
             }
             mv.visitMethodInsn(INVOKEINTERFACE, interfaceClass.getName().replace(".", "/"),
-                    method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()),true);
-            mv.visitInsn(RETURN);
+                    method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()), true);
+
+            if (method.getReturnType() == void.class) {
+                mv.visitInsn(RETURN);
+            } else if (method.getReturnType() == int.class) {
+                mv.visitInsn(IRETURN);
+            } else if (method.getReturnType() == long.class) {
+                mv.visitInsn(LRETURN);
+            } else if (method.getReturnType() == float.class) {
+                mv.visitInsn(FRETURN);
+            } else if (method.getReturnType() == double.class) {
+                mv.visitInsn(DRETURN);
+            } else {
+                mv.visitInsn(ARETURN);
+            }
             mv.visitMaxs(method.getParameterCount() + 2, method.getParameterCount() + 2);
             mv.visitEnd();
         }
@@ -81,7 +96,9 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
     @Override
     public byte[] getByteCode() {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
+        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(),
+                "Ljava/lang/Object;L"+interfaceClass.getName().replace(".","/")+";",
+                "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
         // 添加字段proxy，访问标志为protected，因为第二层代理要用到
         this.classWriter.visitField(ACC_PROTECTED, "proxy", Type.getDescriptor(interfaceClass), null, null);
         // 添加构造方法

@@ -8,7 +8,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * 异步方法的返回参数
  *
- * @author wujiuye 2019/11/24
+ * @author wujiuye 2020/03/27
  */
 public class AsyncResult<T> implements Future<T> {
 
@@ -41,6 +41,30 @@ public class AsyncResult<T> implements Future<T> {
     @Override
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return get();
+    }
+
+    /**
+     * 由字节码调用
+     *
+     * @param future 提交到线程池执行返回的future
+     * @param <T>
+     * @return
+     */
+    public static <T> AsyncResult<T> newAsyncResultProxy(final Future<AsyncResult<T>> future) {
+        return new AsyncResult<T>(null) {
+            @Override
+            public T get() throws InterruptedException, ExecutionException {
+                AsyncResult<T> asyncResult = future.get();
+                return asyncResult.get();
+            }
+        };
+    }
+
+    @Override
+    public String toString() {
+        return "AsyncResult{" +
+                "result=" + result +
+                '}';
     }
 
 }
