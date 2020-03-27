@@ -1,6 +1,6 @@
 # asyncframework
 
-这是`ASM+`动态字节码技术实现的一个异步框架，只需要在你的接口上添加一个`@AsyncFunction`注解即可让这个方法异步执行，不依赖任何第三方框架！
+这是`ASM+`动态字节码技术实现的一个异步框架，只需要在你的接口上添加一个`@AsyncFunction`注解即可让这个方法异步执行！
 
 其实这个东西我们并不陌生，`asyncframework`的`@AsyncFunction`注解与`spring`框架的`@Async`异步注解实现的功能一样。
 
@@ -110,14 +110,13 @@ public class Test{
  
      @Test
      public void testAutoProxyAsync() throws Exception {
-         AsyncMessageSubscribe impl = (String queue) -> System.out.println(queue);
          ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
          AsyncMessageSubscribe proxy = AsmProxyFactory.getInterfaceImplSupporAsync(AsyncMessageSubscribe.class, impl, executorService);
-        // 异步不带返回值 
-        proxy.pullMessage("wujiuye");
-        // 异步带返回值 
-        AsyncResult<String> asyncResult = proxy.doAction("sssss", "ddd");
-        System.out.println(asyncResult.get());
+         // 异步不带返回值 
+         proxy.pullMessage("wujiuye");
+         // 异步带返回值 
+         AsyncResult<String> asyncResult = proxy.doAction("sssss", "ddd");
+         System.out.println(asyncResult.get());
          System.in.read();
      }
  
@@ -293,12 +292,15 @@ public class FutureFunctionHandler implements AsyncFunctionHandler{
 ```text
 java/util/concurrent/Callable.call:()Ljava.lang.Object;
 ```
-因为`Callable`是个泛型接口，如果把实现类的签名和`call`方法的签名改为下面这样反而不行。
+因为`Callable`是个泛型接口。
+
+如果把实现类的签名和`call`方法的签名改为下面这样反而不行。
 ```text
 类的签名：Ljava/lang/Object;Ljava/util/concurrent/Callable<Lcom/wujiuye/asyncframework/handler/async/AsyncResult<Ljava/lang/String;>;>;"
 call方法的签名：()Lcom/wujiuye/asyncframework/handler/async/AsyncResult<Ljava/lang/String;>;
 ```
-因为泛型`<T>`编译后的方法描述符，其实是`()Ljava.lang.Object;`。
+
+因为泛型`<T>`编译后的描述符是`Ljava.lang.Object;`。
 
 如`AsyncResult`泛型类。(选部分)
 ```java
@@ -324,14 +326,16 @@ public class com.wujiuye.asyncframework.handler.async.AsyncResult<T> implements 
     descriptor: ()Ljava/lang/Object;
     Code:
        0: aload_0
-       1: getfield      #2                  // Field result:Ljava/lang/Object;
+       1: getfield      #2  // Field result:Ljava/lang/Object;
        4: areturn
 
 ```
-类型`T`的`descriptor`为`Ljava/lang/Object;`，以及`get`方法中，`getfield`指令指定的类型描述符也是`Ljava/lang/Object;`。
+
+类型`T`的`descriptor`（类型描述符）为`Ljava/lang/Object;`，以及`get`方法中，`getfield`指令指定的类型描述符也是`Ljava/lang/Object;`。
 
 
 `Callable`接口也是泛型接口，编译后`call`方法的描述符便是`()Ljava.lang.Object;`。
+
 ```text
 @FunctionalInterface
 public interface Callable<V> {
