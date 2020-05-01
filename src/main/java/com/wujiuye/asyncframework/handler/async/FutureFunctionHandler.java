@@ -39,12 +39,14 @@ public class FutureFunctionHandler implements AsyncFunctionHandler {
     public void doOverrideAsyncFunc(ClassWriter classWriter, Class<?> interfaceClass, Method asyncMethod, Class<?> proxyObjClass, Class<? extends ExecutorService> executorServiceClass) {
         try {
             Class<?> runableCla = AsyncProxyFactory.getAsyncCallable(interfaceClass, asyncMethod);
-            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, asyncMethod.getName(),
-                    Type.getMethodDescriptor(asyncMethod), ByteCodeUtils.getFunSignature(asyncMethod), null);
+            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC,
+                    asyncMethod.getName(),
+                    Type.getMethodDescriptor(asyncMethod),
+                    ByteCodeUtils.getFunSignature(asyncMethod), null);
             methodVisitor.visitCode();
 
             // new Callable
-            methodVisitor.visitTypeInsn(NEW, runableCla.getName().replace(".", "/"));
+            methodVisitor.visitTypeInsn(NEW, Type.getInternalName(runableCla));
             methodVisitor.visitInsn(DUP);
             Class<?>[] paramTypes = asyncMethod.getParameterTypes();
             Class<?>[] newParamTypes = new Class[paramTypes.length + 1];
@@ -54,43 +56,53 @@ public class FutureFunctionHandler implements AsyncFunctionHandler {
             // super.proxy （要求tClass中必须有proxy字段，且子类可以访问）
             methodVisitor.visitVarInsn(ALOAD, 0);
             // 获取父类的字段，则第二个参数填父类名
-            methodVisitor.visitFieldInsn(GETFIELD, proxyObjClass.getName().replace(".", "/"), "proxy", Type.getDescriptor(interfaceClass));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    Type.getInternalName(proxyObjClass),
+                    "proxy", Type.getDescriptor(interfaceClass));
 
             int index = 1;
             for (; index < newParamTypes.length; index++) {
                 newParamTypes[index] = paramTypes[index - 1];
                 methodVisitor.visitVarInsn(ALOAD, index);
             }
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, runableCla.getName().replace(".", "/"),
-                    "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes), false);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                    Type.getInternalName(runableCla),
+                    "<init>",
+                    ByteCodeUtils.getFuncDesc(null, newParamTypes),
+                    false);
             methodVisitor.visitVarInsn(ASTORE, index);
 
             // do printf log
             LogUtil.prinftLog(methodVisitor, "===============");
 
-            // ===> 测试，非异步调用
-//            methodVisitor.visitVarInsn(ALOAD, index);
-//            methodVisitor.visitMethodInsn(INVOKEINTERFACE, Callable.class.getName().replace(".","/"),
-//                    "call", ByteCodeUtils.getFuncDesc(AsyncResult.class), true);
-
             // invoke submit callable
             methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitFieldInsn(GETFIELD, ByteCodeUtils.getProxyClassName(proxyObjClass), "executorService", Type.getDescriptor(executorServiceClass));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    Type.getInternalName(proxyObjClass) + "SupporAsync",
+                    "executorService",
+                    Type.getDescriptor(executorServiceClass));
             methodVisitor.visitVarInsn(ALOAD, index);
             if (!executorServiceClass.isInterface()) {
-                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"),
-                        "submit", ByteCodeUtils.getFuncDesc(Future.class, Callable.class), false);
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL,
+                        Type.getInternalName(executorServiceClass),
+                        "submit",
+                        ByteCodeUtils.getFuncDesc(Future.class, Callable.class), false);
             } else {
-                methodVisitor.visitMethodInsn(INVOKEINTERFACE, executorServiceClass.getName().replace(".", "/"),
-                        "submit", ByteCodeUtils.getFuncDesc(Future.class, Callable.class), true);
+                methodVisitor.visitMethodInsn(INVOKEINTERFACE,
+                        Type.getInternalName(executorServiceClass),
+                        "submit",
+                        ByteCodeUtils.getFuncDesc(Future.class, Callable.class),
+                        true);
             }
             // 将返回值存到操作数栈
             methodVisitor.visitVarInsn(ASTORE, ++index);
 
             // 再来一层代理，对外部屏蔽线程阻塞等待
             methodVisitor.visitVarInsn(ALOAD, index);
-            methodVisitor.visitMethodInsn(INVOKESTATIC, AsyncResult.class.getName().replace(".", "/"),
-                    "newAsyncResultProxy", ByteCodeUtils.getFuncDesc(AsyncResult.class, Future.class),
+            methodVisitor.visitMethodInsn(INVOKESTATIC,
+                    Type.getInternalName(AsyncResult.class),
+                    "newAsyncResultProxy",
+                    ByteCodeUtils.getFuncDesc(AsyncResult.class, Future.class),
                     false);
 
             methodVisitor.visitInsn(ARETURN);

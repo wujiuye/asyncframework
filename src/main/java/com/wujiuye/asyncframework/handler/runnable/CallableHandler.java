@@ -34,7 +34,7 @@ public class CallableHandler implements ByteCodeHandler {
 
     @Override
     public String getClassName() {
-        return targetClass.getName().replace(".", "/") + "_" + method.getName() + "Callable";
+        return targetClass.getName() + "_" + method.getName() + "Callable";
     }
 
     /**
@@ -43,22 +43,32 @@ public class CallableHandler implements ByteCodeHandler {
      * @param initParams
      */
     private void writeInitFunc(Class<?>[] initParams) {
-        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, initParams), null, null);
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC,
+                "<init>",
+                ByteCodeUtils.getFuncDesc(null, initParams),
+                null, null);
         methodVisitor.visitCode();
         // super()
         methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                "java/lang/Object",
+                "<init>", "()V", false);
 
         // this.target = var1;
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitVarInsn(ALOAD, 1);
-        methodVisitor.visitFieldInsn(PUTFIELD, getClassName(), "target", Type.getDescriptor(initParams[0]));
+        methodVisitor.visitFieldInsn(PUTFIELD,
+                getClassName().replace(".", "/"),
+                "target", Type.getDescriptor(initParams[0]));
 
         // this.paramX = varX+1;
         for (int i = 2; i <= initParams.length; i++) {
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitVarInsn(ALOAD, i);
-            methodVisitor.visitFieldInsn(PUTFIELD, getClassName(), "param" + (i - 1), Type.getDescriptor(initParams[i - 1]));
+            methodVisitor.visitFieldInsn(PUTFIELD,
+                    getClassName().replace(".", "/"),
+                    "param" + (i - 1),
+                    Type.getDescriptor(initParams[i - 1]));
         }
 
         methodVisitor.visitInsn(RETURN);
@@ -72,13 +82,6 @@ public class CallableHandler implements ByteCodeHandler {
      * @param initParams
      */
     private void writeCallFunc(Class<?>[] initParams) {
-        // 用泛型会找不到方法，所以直接用Object就行了
-//        String funSignature = ByteCodeUtils.getFunSignature(method);
-//        assert funSignature != null;
-//        funSignature = funSignature.substring(funSignature.indexOf(")") + 1);
-//        String descriptor = "()" + funSignature.substring(0, funSignature.indexOf("<")) + ";";
-//        String signature = "()" + funSignature;
-
         String descriptor = "()Ljava/lang/Object;";
         String signature = descriptor;
 
@@ -96,17 +99,30 @@ public class CallableHandler implements ByteCodeHandler {
         LogUtil.prinftLog(methodVisitor, "start run call......");
 
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "target", Type.getDescriptor(targetClass));
+        methodVisitor.visitFieldInsn(GETFIELD,
+                getClassName().replace(".", "/"),
+                "target",
+                Type.getDescriptor(targetClass));
+
         for (int i = 1; i < initParams.length; i++) {
             methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "param" + i, Type.getDescriptor(initParams[i]));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    getClassName().replace(".", "/"),
+                    "param" + i,
+                    Type.getDescriptor(initParams[i]));
         }
         if (targetClass.isInterface()) {
-            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"),
-                    method.getName(), Type.getMethodDescriptor(method), true);
+            methodVisitor.visitMethodInsn(INVOKEINTERFACE,
+                    targetClass.getName().replace(".", "/"),
+                    method.getName(),
+                    Type.getMethodDescriptor(method),
+                    true);
         } else {
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, targetClass.getName().replace(".", "/"),
-                    method.getName(), Type.getMethodDescriptor(method), false);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL,
+                    targetClass.getName().replace(".", "/"),
+                    method.getName(),
+                    Type.getMethodDescriptor(method),
+                    false);
         }
 
         methodVisitor.visitInsn(ARETURN);
@@ -115,27 +131,31 @@ public class CallableHandler implements ByteCodeHandler {
     }
 
     private String getClassSignature() {
-        // 用泛型会找不到方法，所以直接用Object就行了
-//        String returnTypeSignature = method.getGenericReturnType().getTypeName();
-//        String paramTSignature = "L" + returnTypeSignature.replace(".", "/")
-//                .replace("<", "<L").replace(">", ";>") + ";";
-//        return "Ljava/lang/Object;Ljava/util/concurrent/Callable<" + paramTSignature + ">;";
         return "Ljava/lang/Object;Ljava/util/concurrent/Callable<Ljava/lang/Object;>;";
     }
 
     @Override
     public byte[] getByteCode() {
-        // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), getClassSignature(),
-                "java/lang/Object", new String[]{Callable.class.getName().replace(".", "/")});
-        classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
+        classWriter.visit(Opcodes.V1_8, ACC_PUBLIC,
+                getClassName().replace(".", "/"),
+                getClassSignature(),
+                "java/lang/Object",
+                new String[]{Type.getInternalName(Callable.class)});
+
+        classWriter.visitField(ACC_PRIVATE,
+                "target",
+                Type.getDescriptor(targetClass),
+                null, null);
+
         Class<?>[] params = method.getParameterTypes();
         Class<?>[] initParams = new Class[params.length + 1];
         initParams[0] = targetClass;
         int index = 1;
         for (Class<?> param : params) {
             initParams[index] = param;
-            classWriter.visitField(ACC_PRIVATE, "param" + index++, Type.getDescriptor(param), null, null);
+            classWriter.visitField(ACC_PRIVATE,
+                    "param" + index++,
+                    Type.getDescriptor(param), null, null);
         }
         this.writeInitFunc(initParams);
         this.writeCallFunc(initParams);

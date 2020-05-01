@@ -49,7 +49,7 @@ public class AsyncImplHandler implements ByteCodeHandler {
 
     @Override
     public String getClassName() {
-        return ByteCodeUtils.getProxyClassName(tClass);
+        return tClass.getName() + "SupporAsync";
     }
 
     /**
@@ -64,7 +64,10 @@ public class AsyncImplHandler implements ByteCodeHandler {
             newParamTypes[newParamTypes.length - 1] = executorServiceClass;
 
             // 生成<init>方法
-            MethodVisitor methodVisitor = this.classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes), null, null);
+            MethodVisitor methodVisitor = this.classWriter.visitMethod(ACC_PUBLIC,
+                    "<init>",
+                    ByteCodeUtils.getFuncDesc(null, newParamTypes),
+                    null, null);
             methodVisitor.visitCode();
 
             // 调用父类构造器
@@ -72,13 +75,19 @@ public class AsyncImplHandler implements ByteCodeHandler {
             for (int i = 0; i < paramTypes.length; i++) {
                 methodVisitor.visitVarInsn(ALOAD, i + 1);
             }
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, tClass.getName().replace(".", "/"),
-                    "<init>", ByteCodeUtils.getFuncDesc(null, paramTypes), false);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                    tClass.getName().replace(".", "/"),
+                    "<init>",
+                    ByteCodeUtils.getFuncDesc(null, paramTypes),
+                    false);
 
             // 为executorService赋值
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitVarInsn(ALOAD, newParamTypes.length);
-            methodVisitor.visitFieldInsn(PUTFIELD, getClassName(), "executorService", Type.getDescriptor(executorServiceClass));
+            methodVisitor.visitFieldInsn(PUTFIELD,
+                    getClassName().replace(".", "/"),
+                    "executorService",
+                    Type.getDescriptor(executorServiceClass));
 
             methodVisitor.visitInsn(RETURN);
             methodVisitor.visitMaxs(newParamTypes.length + 1, newParamTypes.length + 1);
@@ -116,20 +125,20 @@ public class AsyncImplHandler implements ByteCodeHandler {
         throw new UnsupportedOperationException("temporary not suppor! interfaceClass:" + interfaceClass.getName() + ", function:" + asyncMethod.getName());
     }
 
-    private String getClassSignature() {
-        String returnTypeSignature = tClass.getName().replace(".", "/");
-        return "L" + returnTypeSignature + ";";
-    }
-
     @Override
     public byte[] getByteCode() {
-        // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), getClassSignature(),
-                tClass.getName().replace(".", "/"), null);
+        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC,
+                getClassName().replace(".", "/"),
+                null,
+                Type.getInternalName(tClass), null);
+
         // 添加字段executorService
-        this.classWriter.visitField(ACC_PRIVATE, "executorService", Type.getDescriptor(executorServiceClass), null, null);
+        this.classWriter.visitField(ACC_PRIVATE,
+                "executorService",
+                Type.getDescriptor(executorServiceClass), null, null);
         extendsConstructor();
         overrideAsyncFunc();
+
         // end
         this.classWriter.visitEnd();
         return this.classWriter.toByteArray();

@@ -31,7 +31,7 @@ public class RunnableHandler implements ByteCodeHandler {
 
     @Override
     public String getClassName() {
-        return targetClass.getName().replace(".", "/") + "_" + method.getName() + "Runnable";
+        return targetClass.getName() + "_" + method.getName() + "Runnable";
     }
 
     /**
@@ -40,22 +40,34 @@ public class RunnableHandler implements ByteCodeHandler {
      * @param initParams
      */
     private void writeInitFunc(Class<?>[] initParams) {
-        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, initParams), null, null);
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC,
+                "<init>",
+                ByteCodeUtils.getFuncDesc(null, initParams),
+                null, null);
         methodVisitor.visitCode();
         // super()
         methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                "java/lang/Object",
+                "<init>",
+                "()V", false);
 
         // this.target = var1;
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitVarInsn(ALOAD, 1);
-        methodVisitor.visitFieldInsn(PUTFIELD, getClassName(), "target", Type.getDescriptor(initParams[0]));
+        methodVisitor.visitFieldInsn(PUTFIELD,
+                getClassName().replace(".", "/"),
+                "target",
+                Type.getDescriptor(initParams[0]));
 
         // this.paramX = varX+1;
         for (int i = 2; i <= initParams.length; i++) {
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitVarInsn(ALOAD, i);
-            methodVisitor.visitFieldInsn(PUTFIELD, getClassName(), "param" + (i - 1), Type.getDescriptor(initParams[i - 1]));
+            methodVisitor.visitFieldInsn(PUTFIELD,
+                    getClassName().replace(".", "/"),
+                    "param" + (i - 1),
+                    Type.getDescriptor(initParams[i - 1]));
         }
 
         methodVisitor.visitInsn(RETURN);
@@ -74,15 +86,28 @@ public class RunnableHandler implements ByteCodeHandler {
 
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitInsn(DUP);
-        methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "target", Type.getDescriptor(targetClass));
+        methodVisitor.visitFieldInsn(GETFIELD,
+                getClassName().replace(".", "/"),
+                "target",
+                Type.getDescriptor(targetClass));
         for (int i = 1; i < initParams.length; i++) {
             methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitFieldInsn(GETFIELD, getClassName(), "param" + i, Type.getDescriptor(initParams[i]));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    getClassName().replace(".", "/"),
+                    "param" + i,
+                    Type.getDescriptor(initParams[i]));
         }
         if (targetClass.isInterface()) {
-            methodVisitor.visitMethodInsn(INVOKEINTERFACE, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method), true);
+            methodVisitor.visitMethodInsn(INVOKEINTERFACE,
+                    Type.getInternalName(targetClass),
+                    method.getName(),
+                    Type.getMethodDescriptor(method), true);
         } else {
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, targetClass.getName().replace(".", "/"), method.getName(), Type.getMethodDescriptor(method), false);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                    Type.getInternalName(targetClass),
+                    method.getName(),
+                    Type.getMethodDescriptor(method),
+                    false);
         }
 
         methodVisitor.visitInsn(RETURN);
@@ -92,16 +117,24 @@ public class RunnableHandler implements ByteCodeHandler {
 
     @Override
     public byte[] getByteCode() {
-        // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(), null, "java/lang/Object", new String[]{Runnable.class.getName().replace(".", "/")});
-        classWriter.visitField(ACC_PRIVATE, "target", Type.getDescriptor(targetClass), null, null);
+        classWriter.visit(Opcodes.V1_8, ACC_PUBLIC,
+                getClassName().replace(".","/"),
+                null, 
+                "java/lang/Object", 
+                new String[]{Type.getInternalName(Runnable.class)});
+        classWriter.visitField(ACC_PRIVATE, 
+                "target", 
+                Type.getDescriptor(targetClass), 
+                null, null);
         Class<?>[] params = method.getParameterTypes();
         Class<?>[] initParams = new Class[params.length + 1];
         initParams[0] = targetClass;
         int index = 1;
         for (Class<?> param : params) {
             initParams[index] = param;
-            classWriter.visitField(ACC_PRIVATE, "param" + index++, Type.getDescriptor(param), null, null);
+            classWriter.visitField(ACC_PRIVATE, 
+                    "param" + index++, 
+                    Type.getDescriptor(param), null, null);
         }
         this.writeInitFunc(initParams);
         this.writeRunFunc(initParams);

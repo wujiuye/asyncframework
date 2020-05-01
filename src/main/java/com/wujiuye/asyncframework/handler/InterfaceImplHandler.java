@@ -35,7 +35,7 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
 
     @Override
     public String getClassName() {
-        return interfaceClass.getName().replace(".", "/") + "ImplProxy";
+        return interfaceClass.getName() + "ImplProxy";
     }
 
     /**
@@ -43,15 +43,26 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
      * 参数类型就是接口类型
      */
     private void writeInitFunc() {
-        MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC, "<init>", ByteCodeUtils.getFuncDesc(null, interfaceClass), null, null);
+        MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC,
+                "<init>",
+                ByteCodeUtils.getFuncDesc(null, interfaceClass),
+                null, null);
         mv.visitCode();
+
         // 解决java.lang.VerifyError: Constructor must call super() or this() before return
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitMethodInsn(INVOKESPECIAL,
+                "java/lang/Object",
+                "<init>", "()V", false);
+
         // this.proxy = 参数1;'
         mv.visitVarInsn(ALOAD, 0);
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitFieldInsn(PUTFIELD, getClassName(), "proxy", Type.getDescriptor(interfaceClass));
+        mv.visitFieldInsn(PUTFIELD,
+                getClassName().replace(".", "/"),
+                "proxy",
+                Type.getDescriptor(interfaceClass));
+
         mv.visitInsn(RETURN);
         mv.visitMaxs(2, 2);
         mv.visitEnd();
@@ -64,16 +75,23 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
         Method[] methods = interfaceClass.getDeclaredMethods();
         for (Method method : methods) {
             MethodVisitor mv = this.classWriter.visitMethod(ACC_PUBLIC, method.getName(),
-                    ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()),
-                    ByteCodeUtils.getFunSignature(method), null);
+                    Type.getMethodDescriptor(method),
+                    null, null);
+
             mv.visitCode();
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitFieldInsn(GETFIELD, getClassName(), "proxy", Type.getDescriptor(interfaceClass));
+            mv.visitFieldInsn(GETFIELD,
+                    getClassName().replace(".", "/"),
+                    "proxy",
+                    Type.getDescriptor(interfaceClass));
             for (int paramIndex = 1; paramIndex <= method.getParameterCount(); paramIndex++) {
                 mv.visitVarInsn(ALOAD, paramIndex);
             }
-            mv.visitMethodInsn(INVOKEINTERFACE, interfaceClass.getName().replace(".", "/"),
-                    method.getName(), ByteCodeUtils.getFuncDesc(method.getReturnType(), method.getParameterTypes()), true);
+
+            mv.visitMethodInsn(INVOKEINTERFACE,
+                    Type.getInternalName(interfaceClass),
+                    method.getName(),
+                    Type.getMethodDescriptor(method), true);
 
             if (method.getReturnType() == void.class) {
                 mv.visitInsn(RETURN);
@@ -96,11 +114,16 @@ public class InterfaceImplHandler<T> implements ByteCodeHandler {
     @Override
     public byte[] getByteCode() {
         // 类名、父类名、实现的接口名，以"/"替换'.'，注意，不是填类型签名
-        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC, getClassName(),
-                "Ljava/lang/Object;L"+interfaceClass.getName().replace(".","/")+";",
-                "java/lang/Object", new String[]{interfaceClass.getName().replace(".", "/")});
+        this.classWriter.visit(Opcodes.V1_8, ACC_PUBLIC,
+                getClassName().replace(".", "/"),
+                null,
+                "java/lang/Object",
+                new String[]{Type.getInternalName(interfaceClass)});
         // 添加字段proxy，访问标志为protected，因为第二层代理要用到
-        this.classWriter.visitField(ACC_PROTECTED, "proxy", Type.getDescriptor(interfaceClass), null, null);
+        this.classWriter.visitField(ACC_PROTECTED,
+                "proxy",
+                Type.getDescriptor(interfaceClass),
+                null, null);
         // 添加构造方法
         this.writeInitFunc();
         // 实现接口的所有方法

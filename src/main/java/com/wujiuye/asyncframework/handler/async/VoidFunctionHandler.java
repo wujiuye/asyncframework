@@ -36,11 +36,14 @@ public class VoidFunctionHandler implements AsyncFunctionHandler {
     public void doOverrideAsyncFunc(ClassWriter classWriter, Class<?> interfaceClass, Method asyncMethod, Class<?> proxyObjClass, Class<? extends ExecutorService> executorServiceClass) {
         try {
             Class<?> runableCla = AsyncProxyFactory.getAsyncRunable(interfaceClass, asyncMethod);
-            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, asyncMethod.getName(), Type.getMethodDescriptor(asyncMethod), null, null);
+            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC,
+                    asyncMethod.getName(),
+                    Type.getMethodDescriptor(asyncMethod),
+                    null, null);
             methodVisitor.visitCode();
 
             // new Runnable
-            methodVisitor.visitTypeInsn(NEW, runableCla.getName().replace(".", "/"));
+            methodVisitor.visitTypeInsn(NEW, Type.getInternalName(runableCla));
             methodVisitor.visitInsn(DUP);
             Class<?>[] paramTypes = asyncMethod.getParameterTypes();
             Class<?>[] newParamTypes = new Class[paramTypes.length + 1];
@@ -50,27 +53,39 @@ public class VoidFunctionHandler implements AsyncFunctionHandler {
             // super.proxy （要求tClass中必须有proxy字段，且子类可以访问）
             methodVisitor.visitVarInsn(ALOAD, 0);
             // 获取父类的字段，则第二个参数填父类名
-            methodVisitor.visitFieldInsn(GETFIELD, proxyObjClass.getName().replace(".", "/"), "proxy", Type.getDescriptor(interfaceClass));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    Type.getInternalName(proxyObjClass),
+                    "proxy", Type.getDescriptor(interfaceClass));
 
             int index = 1;
             for (; index < newParamTypes.length; index++) {
                 newParamTypes[index] = paramTypes[index - 1];
                 methodVisitor.visitVarInsn(ALOAD, index);
             }
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, runableCla.getName().replace(".", "/"),
-                    "<init>", ByteCodeUtils.getFuncDesc(null, newParamTypes), false);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL,
+                    Type.getInternalName(runableCla),
+                    "<init>",
+                    ByteCodeUtils.getFuncDesc(null, newParamTypes),
+                    false);
             methodVisitor.visitVarInsn(ASTORE, index);
 
             // invoke submit runnable
             methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitFieldInsn(GETFIELD, ByteCodeUtils.getProxyClassName(proxyObjClass), "executorService", Type.getDescriptor(executorServiceClass));
+            methodVisitor.visitFieldInsn(GETFIELD,
+                    Type.getInternalName(proxyObjClass) + "SupporAsync",
+                    "executorService",
+                    Type.getDescriptor(executorServiceClass));
             methodVisitor.visitVarInsn(ALOAD, index);
             if (!executorServiceClass.isInterface()) {
-                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, executorServiceClass.getName().replace(".", "/"),
-                        "execute", "(Ljava/lang/Runnable;)V", false);
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL,
+                        Type.getInternalName(executorServiceClass),
+                        "execute",
+                        "(Ljava/lang/Runnable;)V", false);
             } else {
-                methodVisitor.visitMethodInsn(INVOKEINTERFACE, executorServiceClass.getName().replace(".", "/"),
-                        "execute", "(Ljava/lang/Runnable;)V", true);
+                methodVisitor.visitMethodInsn(INVOKEINTERFACE,
+                        Type.getInternalName(executorServiceClass),
+                        "execute",
+                        "(Ljava/lang/Runnable;)V", true);
             }
             methodVisitor.visitInsn(RETURN);
             methodVisitor.visitMaxs(index + 2, index);

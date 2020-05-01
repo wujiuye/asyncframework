@@ -4,15 +4,12 @@ import com.wujiuye.asyncframework.handler.AsyncImplHandler;
 import com.wujiuye.asyncframework.handler.runnable.CallableHandler;
 import com.wujiuye.asyncframework.handler.runnable.RunnableHandler;
 import com.wujiuye.asyncframework.handler.InterfaceImplHandler;
-import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -25,13 +22,7 @@ import java.util.concurrent.ExecutorService;
  */
 public final class AsyncProxyFactory {
 
-    private static Map<Class<?>, Class<?>> proxyMap = new ConcurrentHashMap<>();
-    private static Map<Class<?>, Class<?>> asyncProxyMap = new ConcurrentHashMap<>();
-    private static Map<String, Class<Runnable>> runnableMap = new ConcurrentHashMap<>();
-    private static Map<String, Class<Callable<?>>> callableMap = new ConcurrentHashMap<>();
-
     private static final ByteCodeClassLoader CLASS_LOADER;
-    private static final boolean DEBUG;
 
     static {
         final ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -41,7 +32,6 @@ public final class AsyncProxyFactory {
                 return new ByteCodeClassLoader(loader);
             }
         });
-        DEBUG = Boolean.getBoolean("debug");
     }
 
     /**
@@ -52,17 +42,11 @@ public final class AsyncProxyFactory {
      * @return 返回接口的一个实现类
      */
     public static <T> Class<?> getInterfaceImpl(Class<T> tClass) throws Exception {
-        if (proxyMap.containsKey(tClass)) {
-            return proxyMap.get(tClass);
+        synchronized (tClass) {
+            InterfaceImplHandler<T> interfaceImplHandler = new InterfaceImplHandler<>(tClass);
+            CLASS_LOADER.add(interfaceImplHandler.getClassName(), interfaceImplHandler);
+            return CLASS_LOADER.loadClass(interfaceImplHandler.getClassName());
         }
-        InterfaceImplHandler<T> interfaceImplHandler = new InterfaceImplHandler<>(tClass);
-        CLASS_LOADER.add(interfaceImplHandler.getClassName(), interfaceImplHandler);
-        if (DEBUG) {
-            ByteCodeUtils.savaToClasspath(interfaceImplHandler);
-        }
-        Class<?> cla = CLASS_LOADER.loadClass(interfaceImplHandler.getClassName());
-        proxyMap.put(tClass, cla);
-        return cla;
     }
 
     /**
@@ -76,22 +60,18 @@ public final class AsyncProxyFactory {
      * @throws Exception
      */
     public static <T> T getInterfaceImplSupporAsync(Class<T> tClass, T proxy, ExecutorService executorService) throws Exception {
-        Class<?> proxyClass = getInterfaceImpl(tClass);
         synchronized (tClass) {
-            if (!asyncProxyMap.containsKey(proxyClass)) {
-                AsyncImplHandler asyncImplHandler = new AsyncImplHandler(ExecutorService.class, proxyClass);
-                CLASS_LOADER.add(asyncImplHandler.getClassName(), asyncImplHandler);
-                if (DEBUG) {
-                    ByteCodeUtils.savaToClasspath(asyncImplHandler);
-                }
-                Class<?> cla = CLASS_LOADER.loadClass(asyncImplHandler.getClassName());
-                asyncProxyMap.put(proxyClass, cla);
-            }
+            // 生成代理类
+            Class<?> proxyClass = getInterfaceImpl(tClass);
+            // 代理类的子类，支持异常方法
+            AsyncImplHandler asyncImplHandler = new AsyncImplHandler(ExecutorService.class, proxyClass);
+            CLASS_LOADER.add(asyncImplHandler.getClassName(), asyncImplHandler);
+            Class<?> cla = CLASS_LOADER.loadClass(asyncImplHandler.getClassName());
+            // 根据参数类型获取相应的构造函数
+            Constructor<?> constructor = cla.getConstructor(tClass, ExecutorService.class);
+            // 根据构造器创建实例，并传入代理类和线程池
+            return (T) constructor.newInstance(proxy, executorService);
         }
-        // 根据参数类型获取相应的构造函数
-        Constructor<?> constructor = asyncProxyMap.get(proxyClass).getConstructor(tClass, ExecutorService.class);
-        // 根据构造器创建实例，并传入代理类和线程池
-        return (T) constructor.newInstance(proxy, executorService);
     }
 
     /**
@@ -103,18 +83,11 @@ public final class AsyncProxyFactory {
      * @throws Exception
      */
     public static Class<Runnable> getAsyncRunable(Class<?> targetClass, Method method) throws Exception {
-        String key = targetClass.getName() + "$" + Type.getMethodDescriptor(method);
-        if (runnableMap.containsKey(key)) {
-            return runnableMap.get(key);
+        synchronized (targetClass) {
+            RunnableHandler runnableHandler = new RunnableHandler(targetClass, method);
+            CLASS_LOADER.add(runnableHandler.getClassName(), runnableHandler);
+            return (Class<Runnable>) CLASS_LOADER.loadClass(runnableHandler.getClassName());
         }
-        RunnableHandler runnableHandler = new RunnableHandler(targetClass, method);
-        CLASS_LOADER.add(runnableHandler.getClassName(), runnableHandler);
-        if (DEBUG) {
-            ByteCodeUtils.savaToClasspath(runnableHandler);
-        }
-        Class cla = CLASS_LOADER.loadClass(runnableHandler.getClassName());
-        runnableMap.put(key, cla);
-        return cla;
     }
 
     /**
@@ -126,18 +99,11 @@ public final class AsyncProxyFactory {
      * @throws Exception
      */
     public static Class<Callable<?>> getAsyncCallable(Class<?> targetClass, Method method) throws Exception {
-        String key = targetClass.getName() + "$" + Type.getMethodDescriptor(method);
-        if (callableMap.containsKey(key)) {
-            return callableMap.get(key);
+        synchronized (targetClass) {
+            CallableHandler callableHandler = new CallableHandler(targetClass, method);
+            CLASS_LOADER.add(callableHandler.getClassName(), callableHandler);
+            return (Class<Callable<?>>) CLASS_LOADER.loadClass(callableHandler.getClassName());
         }
-        CallableHandler callableHandler = new CallableHandler(targetClass, method);
-        CLASS_LOADER.add(callableHandler.getClassName(), callableHandler);
-        if (DEBUG) {
-            ByteCodeUtils.savaToClasspath(callableHandler);
-        }
-        Class cla = CLASS_LOADER.loadClass(callableHandler.getClassName());
-        callableMap.put(key, cla);
-        return cla;
     }
 
 }
